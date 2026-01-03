@@ -18,7 +18,7 @@ class Repository:
             id = item.get("Track ID")
             info = tracks.get(str(id), {})
             if not info:
-                continue
+                raise ValueError(f"Track with ID '{id}' not found in playlist '{playlistName}'")
             
             playlist_tracks.append(
                 Track(
