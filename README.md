@@ -1,77 +1,95 @@
 # DJDownload
 
-A Python tool for splitting DJ mix recordings into individual tracks with proper metadata. This tool takes a single raw audio file containing a DJ set and an iTunes playlist XML file, then automatically splits the audio into separate track files with complete ID3 tags.
+Split a single long DJ mix/recording into individual track files using an exported Apple Music/iTunes playlist (XML).
 
-## Features
+This tool:
+- Reads track order + durations from a playlist XML
+- Slices a matching `audio/<playlist>.wav` into per-track files
+- Exports each track as `.aiff` and writes common tags (title/artist/album/etc.)
 
-- **Automatic Track Splitting**: Splits a continuous DJ mix recording into individual tracks based on track durations from an iTunes playlist
-- **Metadata Preservation**: Automatically adds ID3 tags to output files including:
-  - Title
-  - Artist
-  - Album
-  - Album Artist
-  - Genre
-  - Year
-  - Track Number/Total Tracks
-- **High-Quality Output**: Exports tracks in AIFF format for maximum audio quality
+## Prerequisites
 
-## Requirements
+- macOS (this repo layout assumes macOS, but it should work elsewhere)
+- Python 3
+- `make`
+- (Recommended) `ffmpeg` for `pydub`
 
-- Python 3.x
-- pydub
-- mutagen
+On macOS:
 
-## Installation
+```bash
+brew install ffmpeg
+```
 
-1. Clone this repository
-2. Create a virtual environment (optional but recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On macOS/Linux
-   ```
-3. Install dependencies:
-   ```bash
-   pip install pydub mutagen
-   ```
+## Setup
+
+```bash
+make setup
+```
+
+This creates `./venv` and installs dependencies (`pydub`, `mutagen`).
 
 ## Usage
 
-### 1. Prepare Your Input Files
+1) Export a playlist XML into `playlists/`
 
-#### Raw Audio File
-- Place your DJ mix recording in the `audio/` directory
-- **Format requirement**: The raw audio file must be in **WAV format**
-- File should be named to match your playlist (e.g., `Ipizza.wav`)
+- In Music/iTunes: **File → Library → Export Playlist…**
+- Choose **XML**
+- Save it into `playlists/` (example: `playlists/Fresh Chiz.xml`)
 
-#### Playlist XML File
-- Export your iTunes playlist to XML format:
-  1. Open iTunes
-  2. Select the playlist you want to export
-  3. Go to **File > Library > Export Playlist...**
-  4. Choose **XML** as the file format
-  5. Save the file to the `playlists/` directory
+Important: the playlist name *inside the XML* must match the filename (without `.xml`).
 
-**Important**: The track order in your playlist must match the order of tracks in your audio recording, and the track durations in the playlist should be accurate.
+2) Put the matching audio recording into `audio/`
 
-### 2. Update Configuration
+For `playlists/Fresh Chiz.xml`, you must have:
 
-Edit [src/main.py](src/main.py) to specify your files:
+- `audio/Fresh Chiz.wav`
 
-```python
-def main():
-    create_track_files(
-        playlist_file="playlists/YourPlaylist.xml",
-        audio_file="audio/YourMix.wav",
-        output_dir="output/"
-    )
-```
+The WAV should be the full continuous recording that corresponds to that playlist *in the same order*, starting at time 0.
 
-### 3. Run the Tool
+3) Run
 
 ```bash
-python src/main.py
+make run
 ```
 
-### 4. Get Your Tracks
+The script processes every `*.xml` in `playlists/`.
 
-The individual track files will be saved to the `output/` directory in **AIFF format** with complete metadata.
+## Output
+
+For each playlist XML, tracks are written to:
+
+- `output/<playlist name>/`
+
+Each track is exported as:
+
+- `output/<playlist name>/<Track Title>.aiff`
+
+Tags written (when present in the playlist XML):
+- Title, Artist
+- Album, Album Artist
+- Genre, Year
+- Track number / track count
+
+## How slicing works (important)
+
+Slicing is sequential using durations from the XML (the `Total Time` field, in milliseconds):
+
+- Track 1: starts at 0
+- Track 2: starts after Track 1 duration
+- …and so on
+
+There is no beat detection, silence detection, or cue-point logic. If your recording does not align with the playlist durations/order, the cuts will drift.
+
+## Troubleshooting
+
+- **"Virtual environment not found"**: run `make setup` first.
+- **Audio file not found**: ensure `audio/<playlist>.wav` exists and the name matches the XML filename.
+- **"Playlist '<name>' not found in file"**: the playlist name embedded in the XML doesn’t match the XML filename (without `.xml`).
+- **ffmpeg errors / decoding issues**: ensure `ffmpeg` is installed (`brew install ffmpeg`).
+
+## Project layout
+
+- `src/` — application code
+- `playlists/` — exported playlist XML files
+- `audio/` — input WAV recordings (one per playlist)
+- `output/` — generated AIFF tracks

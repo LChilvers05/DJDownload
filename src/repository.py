@@ -1,4 +1,5 @@
 import plistlib
+import wave
 from pydub import AudioSegment
 from pathlib import Path
 from mutagen.aiff import AIFF
@@ -8,30 +9,50 @@ from model.playlist import Playlist
 
 class Repository:
 
-    def get_audio(self, file_name):
-        return AudioSegment.from_file(file_name, format="wav")
-    
-
     def get_playlist(self, file_name, playlist_name):
-        file = self.__open_file(file_name)
-        file_tracks = self.__get_tracks_in_file(file)
-        file_playlist = self.__find_playlist_in_file(file, playlist_name)
+        file = self.__open_playlist_file(file_name)
+        file_tracks = self.__get_tracks_in_playlist_file(file)
+        file_playlist = self.__find_playlist_in_playlist_file(file, playlist_name)
         playlist = self.__construct_playlist(file_playlist, file_tracks, playlist_name)
+        
         return playlist
+    
+
+    def get_audio(self, path):
+        if not path.exists():
+            raise FileNotFoundError(f"Audio file '{path.name}' not found")
+            
+        return wave.open(f"audio/{path.name}", "rb")
 
 
-    def save_tracks(self, tracks, metadata, directory):
-        path = Path(directory)
-        path.mkdir(exist_ok=True)
-        for track, meta in zip(tracks, metadata):
-            self.__save_track(track, meta, path)
+    def get_audio_slice(self, audio, start=0, duration=None):
+        frame_rate = audio.getframerate()
+        channels = audio.getnchannels()
+        sample_width = audio.getsampwidth()
+
+        start_frame = int(start * frame_rate / 1000)
+        audio.setpos(max(0, start_frame))
+
+        if duration is None:
+            frames_to_read = audio.getnframes() - audio.tell()
+        else:
+            frames_to_read = int(duration * frame_rate / 1000)
+
+        raw = audio.readframes(max(0, frames_to_read))
+
+        return AudioSegment(
+            data=raw,
+            sample_width=sample_width,
+            frame_rate=frame_rate,
+            channels=channels,
+        )
 
     
-    def __save_track(self, track: AudioSegment, metadata: Track, path):
+    def save_track(self, track: AudioSegment, metadata: Track, path: Path):
+        path.mkdir(exist_ok=True)
         track_path = path / f"{metadata.title}.aiff"
         track.export(track_path, format="aiff")
         self.__add_track_metadata(track_path, metadata)
-        print(f"Saved track '{metadata.title}'")
 
 
     def __add_track_metadata(self, path, metadata: Track):
@@ -83,11 +104,11 @@ class Repository:
         return Playlist(name=playlist_name, tracks=playlist_tracks)
     
 
-    def __get_tracks_in_file(self, file):
+    def __get_tracks_in_playlist_file(self, file):
         return file.get("Tracks", {})
     
     
-    def __find_playlist_in_file(self, file, playlist_name):
+    def __find_playlist_in_playlist_file(self, file, playlist_name):
         playlists = file.get("Playlists", [])
         
         for playlist in playlists:
@@ -97,6 +118,6 @@ class Repository:
         raise ValueError(f"Playlist '{playlist_name}' not found in file")
 
           
-    def __open_file(self, file_name):
+    def __open_playlist_file(self, file_name):
         with open(file_name, "rb") as fp:
             return plistlib.load(fp)

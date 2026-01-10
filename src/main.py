@@ -1,32 +1,30 @@
 from repository import Repository
 from pathlib import Path
 
-def create_track_files(repo: Repository, output_dir="output/"):
+def create_track_files(repo: Repository):
     for playlist_file in Path("playlists").glob('*.xml'):
         playlist_name = playlist_file.name.split('.xml')[0]
 
-        audio_file = f"audio/{playlist_name}.wav"
-        audio = repo.get_audio(audio_file)
-        print(f"Loaded raw audio from '{audio_file}'")
-
+        raw_audio = repo.get_audio(Path(f"audio/{playlist_name}.wav"))
         playlist = repo.get_playlist(playlist_file, playlist_name)
         print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
-        
-        tracks = split_audio(audio, playlist)
-        playlist_output_dir = f"{output_dir}/{playlist.name}"
-        repo.save_tracks(tracks, playlist.tracks, playlist_output_dir)
 
+        start = 0
+        for track_metadata in playlist.tracks:
+            slice = repo.get_audio_slice(
+                audio=raw_audio, 
+                start=start, 
+                duration=track_metadata.duration
+            )
 
-def split_audio(raw_audio, playlist):
-    audios = []
-    start = 0
-    for track in playlist.tracks:
-        end = start + track.duration
-        audio = raw_audio[start:end]
-        audios.append(audio)
-        start = end
+            repo.save_track(
+                track=slice, 
+                metadata=track_metadata, 
+                path=Path("output") / playlist.name
+            )
+            print(f"Saved track '{track_metadata.title}'")
 
-    return audios
+            start = start + track_metadata.duration
 
 
 def main():
