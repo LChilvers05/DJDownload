@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
 /venv
-src/playlists/*.xml
-src/audio/
+playlists/*.xml
+audio/*
+output/*

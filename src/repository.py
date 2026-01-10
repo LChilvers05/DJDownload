@@ -2,14 +2,14 @@ import plistlib
 from pydub import AudioSegment
 from pathlib import Path
 from mutagen.aiff import AIFF
-from mutagen.id3 import TIT2, TPE1, TALB, TRCK, TDRC
+from mutagen.id3 import TIT2, TPE1, TPE2, TALB, TRCK, TDRC, TCON
 from model.track import Track
 from model.playlist import Playlist
 
 class Repository:
 
     def get_audio(self, file_name):
-        return AudioSegment.from_wav(file_name)
+        return AudioSegment.from_file(file_name, format="wav")
     
 
     def get_playlist(self, file_name):
@@ -29,28 +29,34 @@ class Repository:
 
     
     def __save_track(self, track: AudioSegment, metadata: Track, path):
-        track_path = path / f"{metadata.title}.mp3"
-
-        print(track.sample_width)
-        print(track.frame_rate)
-        print(track.channels)
-        track.set_channels(2)
-        track.set_sample_width(4)
-
-        track.export(out_f=metadata.title, format="mp3")
-        # self.__add_track_metadata(track_path, metadata)
+        track_path = path / f"{metadata.title}.aiff"
+        track.export(track_path, format="aiff")
+        self.__add_track_metadata(track_path, metadata)
         print(f"Saved track '{metadata.title}'")
 
-    
-    # def __add_track_metadata(self, path, metadata: Track):
-    #     aiff = AIFF(path)
-    #     if aiff.tags is None:
-    #         aiff.add_tags()
 
-    #     aiff.tags.add(TIT2(encoding=3, text=metadata.title))
-    #     aiff.tags.add(TPE1(encoding=3, text=metadata.artist))
+    def __add_track_metadata(self, path, metadata: Track):
+        aiff = AIFF(path)
+        if aiff.tags is None:
+            aiff.add_tags()
 
-    #     aiff.save()
+        aiff.tags.add(TIT2(encoding=3, text=metadata.title))
+        aiff.tags.add(TPE1(encoding=3, text=metadata.artist))
+        if metadata.album:
+            aiff.tags.add(TALB(encoding=3, text=metadata.album))
+        if metadata.album_artist:
+            aiff.tags.add(TPE2(encoding=3, text=metadata.album_artist))
+        if metadata.genre:
+            aiff.tags.add(TCON(encoding=3, text=metadata.genre))
+        if metadata.year:
+            aiff.tags.add(TDRC(encoding=3, text=str(metadata.year)))
+        if metadata.track_number:
+            track_text = str(metadata.track_number)
+            if metadata.track_count:
+                track_text += f"/{metadata.track_count}"
+            aiff.tags.add(TRCK(encoding=3, text=track_text))
+
+        aiff.save()
             
 
     def __construct_playlist(self, playlist, tracks, playlist_name):
@@ -66,6 +72,12 @@ class Repository:
                     title=info["Name"],
                     artist=info["Artist"],
                     duration=info["Total Time"],
+                    album=info.get("Album"),
+                    album_artist=info.get("Album Artist"),
+                    genre=info.get("Genre"),
+                    year=info.get("Year"),
+                    track_number=info.get("Track Number"),
+                    track_count=info.get("Track Count"),
                 )
             )
         
