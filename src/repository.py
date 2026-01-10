@@ -12,12 +12,11 @@ class Repository:
         return AudioSegment.from_file(file_name, format="wav")
     
 
-    def get_playlist(self, file_name):
-        name = file_name.split('/')[-1].split('.xml')[0]
+    def get_playlist(self, file_name, playlist_name):
         file = self.__open_file(file_name)
         file_tracks = self.__get_tracks_in_file(file)
-        file_playlist = self.__find_playlist_in_file(file, name)
-        playlist = self.__construct_playlist(file_playlist, file_tracks, name)
+        file_playlist = self.__find_playlist_in_file(file, playlist_name)
+        playlist = self.__construct_playlist(file_playlist, file_tracks, playlist_name)
         return playlist
 
 

@@ -1,16 +1,20 @@
 from repository import Repository
+from pathlib import Path
 
-def create_track_files(playlist_file, audio_file, output_dir):
-    repo = Repository()
+def create_track_files(repo: Repository, output_dir="output/"):
+    for playlist_file in Path("playlists").glob('*.xml'):
+        playlist_name = playlist_file.name.split('.xml')[0]
 
-    playlist = repo.get_playlist(playlist_file)
-    print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
+        audio_file = f"audio/{playlist_name}.wav"
+        audio = repo.get_audio(audio_file)
+        print(f"Loaded raw audio from '{audio_file}'")
 
-    audio = repo.get_audio(audio_file)
-    print(f"Loaded raw audio from '{audio_file}'")
-
-    tracks = split_audio(audio, playlist)
-    repo.save_tracks(tracks, playlist.tracks, output_dir)
+        playlist = repo.get_playlist(playlist_file, playlist_name)
+        print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
+        
+        tracks = split_audio(audio, playlist)
+        playlist_output_dir = f"{output_dir}/{playlist.name}"
+        repo.save_tracks(tracks, playlist.tracks, playlist_output_dir)
 
 
 def split_audio(raw_audio, playlist):
@@ -26,11 +30,8 @@ def split_audio(raw_audio, playlist):
 
 
 def main():
-    create_track_files(
-        playlist_file="playlists/Ipizza.xml",
-        audio_file="audio/Ipizza.wav",
-        output_dir="output/"
-    )
+    repo = Repository()
+    create_track_files(repo)
 
 
 if __name__ == "__main__":
