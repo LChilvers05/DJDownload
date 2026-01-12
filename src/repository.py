@@ -1,5 +1,6 @@
 import plistlib
-import wave
+import subprocess
+from io import BytesIO
 from pydub import AudioSegment
 from pathlib import Path
 from mutagen.aiff import AIFF
@@ -16,36 +17,28 @@ class Repository:
         playlist = self.__construct_playlist(file_playlist, file_tracks, playlist_name)
         
         return playlist
-    
-
-    def get_audio(self, path):
-        if not path.exists():
-            raise FileNotFoundError(f"Audio file '{path.name}' not found")
-            
-        return wave.open(f"audio/{path.name}", "rb")
 
 
-    def get_audio_slice(self, audio, start=0, duration=None):
-        frame_rate = audio.getframerate()
-        channels = audio.getnchannels()
-        sample_width = audio.getsampwidth()
+    def get_audio_slice(self, audio_path, start, duration):
+        cmd = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel", "error",
+            "-ss", f"{start / 1000:.6f}",
+            "-i", str(audio_path),
+            "-t", f"{duration / 1000:.6f}",
+            "-f", "wav",
+            "pipe:1",
+        ]
 
-        start_frame = int(start * frame_rate / 1000)
-        audio.setpos(max(0, start_frame))
-
-        if duration is None:
-            frames_to_read = audio.getnframes() - audio.tell()
-        else:
-            frames_to_read = int(duration * frame_rate / 1000)
-
-        raw = audio.readframes(max(0, frames_to_read))
-
-        return AudioSegment(
-            data=raw,
-            sample_width=sample_width,
-            frame_rate=frame_rate,
-            channels=channels,
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
         )
+
+        return AudioSegment.from_file(BytesIO(proc.stdout), format="wav")
 
     
     def save_track(self, track: AudioSegment, metadata: Track, path: Path):
