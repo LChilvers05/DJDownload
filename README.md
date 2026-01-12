@@ -1,24 +1,21 @@
 # DJDownload
 
-Split a single long DJ mix/recording into individual track files using an exported Apple Music/iTunes playlist (XML).
+Takes an iTunes/Music playlist export (`.xml`) plus a matching continuous recording (`.wav`), slices the audio on silence, and exports individual tracks as `.aiff` files with ID3 metadata.
 
-This tool:
-- Reads track order + durations from a playlist XML
-- Slices a matching `audio/<playlist>.wav` into per-track files
-- Exports each track as `.aiff` and writes common tags (title/artist/album/etc.)
+## Requirements
 
-## Prerequisites
-
-- macOS (this repo layout assumes macOS, but it should work elsewhere)
 - Python 3
-- `make`
-- (Recommended) `ffmpeg` for `pydub`
+- `ffmpeg` available on your `PATH`
+  - macOS (Homebrew): `brew install ffmpeg`
 
-On macOS:
+## Project layout
 
-```bash
-brew install ffmpeg
-```
+- `playlists/*.xml`: exported iTunes/Music playlists
+- `audio/<playlist_name>.wav`: one WAV recording per playlist
+- `output/<playlist_name>/*.aiff`: exported tracks
+- `temp/*.wav`: intermediate slices (recreated each run)
+
+The playlist name is taken from the XML filename (e.g. `playlists/Ipizza.xml` → `Ipizza`), and the code expects the audio to be at `audio/Ipizza.wav`.
 
 ## Setup
 
@@ -26,70 +23,33 @@ brew install ffmpeg
 make setup
 ```
 
-This creates `./venv` and installs dependencies (`pydub`, `mutagen`).
-
-## Usage
-
-1) Export a playlist XML into `playlists/`
-
-- In Music/iTunes: **File → Library → Export Playlist…**
-- Choose **XML**
-- Save it into `playlists/` (example: `playlists/Fresh Chiz.xml`)
-
-Important: the playlist name *inside the XML* must match the filename (without `.xml`).
-
-2) Put the matching audio recording into `audio/`
-
-For `playlists/Fresh Chiz.xml`, you must have:
-
-- `audio/Fresh Chiz.wav`
-
-The WAV should be the full continuous recording that corresponds to that playlist *in the same order*, starting at time 0.
-
-3) Run
+## Run
 
 ```bash
 make run
 ```
 
-The script processes every `*.xml` in `playlists/`.
+The default Make target is `run`, so `make` also works once you’ve run `make setup`.
 
-## Output
+## Exporting playlists
 
-For each playlist XML, tracks are written to:
+See [playlists/README.md](playlists/README.md) for the iTunes/Music “Export Playlist…” steps.
 
-- `output/<playlist name>/`
+## How it works (high level)
 
-Each track is exported as:
+1. For each `playlists/*.xml`, parse the playlist and track metadata.
+2. Slice `audio/<playlist>.wav` into `temp/temp_000.wav`, `temp/temp_001.wav`, …
+   - Uses `ffmpeg` `silencedetect` to find `silence_end` timestamps.
+   - Uses the `ffmpeg` segment muxer to split at those timestamps.
+3. Load each slice and match it to the next expected playlist track by duration (with a small tolerance).
+4. Export as `.aiff` into `output/<playlist_name>/` and write tags (title/artist/album/etc).
 
-- `output/<playlist name>/<Track Title>.aiff`
+## Tuning / troubleshooting
 
-Tags written (when present in the playlist XML):
-- Title, Artist
-- Album, Album Artist
-- Genre, Year
-- Track number / track count
+- If slicing produces too many/few segments, adjust the silence detection parameters in [src/audio_processor.py](src/audio_processor.py) (`threshold`/`duration`).
+- If tracks don’t match, adjust the duration tolerance in [src/main.py](src/main.py).
+- If `ffmpeg` isn’t found, confirm `ffmpeg -version` works in your shell.
 
-## How slicing works (important)
+## Useful commands
 
-Slicing is sequential using durations from the XML (the `Total Time` field, in milliseconds):
-
-- Track 1: starts at 0
-- Track 2: starts after Track 1 duration
-- …and so on
-
-There is no beat detection, silence detection, or cue-point logic. If your recording does not align with the playlist durations/order, the cuts will drift.
-
-## Troubleshooting
-
-- **"Virtual environment not found"**: run `make setup` first.
-- **Audio file not found**: ensure `audio/<playlist>.wav` exists and the name matches the XML filename.
-- **"Playlist '<name>' not found in file"**: the playlist name embedded in the XML doesn’t match the XML filename (without `.xml`).
-- **ffmpeg errors / decoding issues**: ensure `ffmpeg` is installed (`brew install ffmpeg`).
-
-## Project layout
-
-- `src/` — application code
-- `playlists/` — exported playlist XML files
-- `audio/` — input WAV recordings (one per playlist)
-- `output/` — generated AIFF tracks
+- `make clean`: removes `venv/` and Python cache files

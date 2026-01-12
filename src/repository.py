@@ -1,6 +1,4 @@
 import plistlib
-import subprocess
-from io import BytesIO
 from pydub import AudioSegment
 from pathlib import Path
 from mutagen.aiff import AIFF
@@ -10,6 +8,10 @@ from model.playlist import Playlist
 
 class Repository:
 
+    def get_audio(self, path: Path):
+        return AudioSegment.from_file(path, format="wav")
+    
+
     def get_playlist(self, file_name, playlist_name):
         file = self.__open_playlist_file(file_name)
         file_tracks = self.__get_tracks_in_playlist_file(file)
@@ -17,28 +19,6 @@ class Repository:
         playlist = self.__construct_playlist(file_playlist, file_tracks, playlist_name)
         
         return playlist
-
-
-    def get_audio_slice(self, audio_path, start, duration):
-        cmd = [
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel", "error",
-            "-ss", f"{start / 1000:.6f}",
-            "-i", str(audio_path),
-            "-t", f"{duration / 1000:.6f}",
-            "-f", "wav",
-            "pipe:1",
-        ]
-
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-
-        return AudioSegment.from_file(BytesIO(proc.stdout), format="wav")
 
     
     def save_track(self, track: AudioSegment, metadata: Track, path: Path):
