@@ -11,6 +11,17 @@ class Repository:
     def get_audio(self, path: Path):
         return AudioSegment.from_file(path, format="wav")
     
+    
+    def get_playlists(self):
+        playlists = []
+        for playlist_file in Path("playlists").glob('*.xml'):
+            playlist_name = playlist_file.name.split('.xml')[0]
+            playlist = self.get_playlist(playlist_file, playlist_name)
+            print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
+            playlists.append(playlist)
+
+        return playlists
+    
 
     def get_playlist(self, file_name, playlist_name):
         file = self.__open_playlist_file(file_name)

@@ -4,13 +4,8 @@ from audio_processor import AudioProcessor
 
 def create_track_files(repo: Repository):
 
-    for playlist_file in Path("playlists").glob('*.xml'):
-        playlist_name = playlist_file.name.split('.xml')[0]
-
-        temp_path = AudioProcessor().slice_audio(Path(f"audio/{playlist_name}.wav"))
-
-        playlist = repo.get_playlist(playlist_file, playlist_name)
-        print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
+    for playlist in repo.get_playlists():
+        temp_path = AudioProcessor().slice_audio(Path(f"audio/{playlist.name}.wav"))
         
         save_songs_from_slices(repo, temp_path, playlist)
 
