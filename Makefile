@@ -18,6 +18,14 @@ run:
 	fi
 	@venv/bin/python src/main.py
 
+# Run the main application in prep mode
+prep:
+	@if [ ! -d "venv" ]; then \
+		echo "Virtual environment not found. Run 'make setup' first."; \
+		exit 1; \
+	fi
+	@venv/bin/python src/main.py -p
+
 # Setup virtual environment and install dependencies
 setup:
 	@echo "Creating virtual environment..."

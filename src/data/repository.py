@@ -11,10 +11,14 @@ class Repository:
     def get_audio(self, path: Path):
         return AudioSegment.from_file(path, format="wav")
     
+
+    def get_playlist_files(self):
+        return Path("playlists").glob('*.xml')
+    
     
     def get_playlists(self):
         playlists = []
-        for playlist_file in Path("playlists").glob('*.xml'):
+        for playlist_file in self.get_playlist_files():
             playlist_name = playlist_file.name.split('.xml')[0]
             playlist = self.get_playlist(playlist_file, playlist_name)
             print(f"Fetched playlist '{playlist.name}' with {len(playlist.tracks)} tracks")
@@ -24,7 +28,7 @@ class Repository:
     
 
     def get_playlist(self, file_name, playlist_name):
-        file = self.__open_playlist_file(file_name)
+        file = self.open_playlist_file(file_name)
         file_tracks = self.__get_tracks_in_playlist_file(file)
         file_playlist = self.__find_playlist_in_playlist_file(file, playlist_name)
         playlist = self.__construct_playlist(file_playlist, file_tracks, playlist_name)
@@ -37,6 +41,11 @@ class Repository:
         track_path = path / f"{metadata.title}.aiff"
         track.export(track_path, format="aiff")
         self.__add_track_metadata(track_path, metadata)
+
+
+    def open_playlist_file(self, file_name):
+        with open(file_name, "rb") as fp:
+            return plistlib.load(fp)
 
 
     def __add_track_metadata(self, path, metadata: Track):
@@ -100,8 +109,3 @@ class Repository:
                 return playlist
         
         raise ValueError(f"Playlist '{playlist_name}' not found in file")
-
-          
-    def __open_playlist_file(self, file_name):
-        with open(file_name, "rb") as fp:
-            return plistlib.load(fp)
