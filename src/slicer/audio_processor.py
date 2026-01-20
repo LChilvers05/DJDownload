@@ -8,7 +8,7 @@ class AudioProcessor:
         self.temp_dir = Path(temp_dir)
     
 
-    def slice_audio(self, audio_path: Path | str, threshold: int = -40, duration: float = 0.35) -> Path:
+    def slice_audio(self, audio_path: Path | str, threshold: int = -80, duration: float = 2.0) -> Path:
         audio_path = Path(audio_path)
         if not audio_path.exists():
             raise FileNotFoundError(f"Audio file '{audio_path.name}' not found")

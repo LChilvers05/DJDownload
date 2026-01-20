@@ -24,7 +24,7 @@ class App:
             temp_duration = len(temp_audio)
 
             track = playlist.tracks[j]
-            if not (abs(track.duration - temp_duration) <= 5000): # 5 sec
+            if not (abs(track.duration - temp_duration) <= 10000): # 10 sec
                 continue
                 
             self.repo.save_track(
