@@ -31,6 +31,16 @@ make run
 
 The default Make target is `run`, so `make` also works once you’ve run `make setup`.
 
+## Prep playlists (optional)
+
+If you want help creating/editing playlist XML files for this project, you can run the built-in “prepper” mode.
+
+```bash
+make prep
+```
+
+This starts the prepper app, which is used to generate `.xml` playlist files that include silence tracks (useful for splitting a continuous recording into individual tracks).
+
 ## Exporting playlists
 
 See [playlists/README.md](playlists/README.md) for the iTunes/Music “Export Playlist…” steps.
@@ -53,3 +63,4 @@ See [playlists/README.md](playlists/README.md) for the iTunes/Music “Export Pl
 ## Useful commands
 
 - `make clean`: removes `venv/` and Python cache files
+- `make prep`: launches the playlist prepper (generates `.xml` playlists with silence tracks)
