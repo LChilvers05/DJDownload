@@ -68,6 +68,8 @@ class AudioProcessor:
         for line in result.stderr.splitlines():
             match = re.search(r"silence_end: ([0-9.]+)", line)
             if match:
-                silence_ends.append(match.group(1))
+                # Start the next segment slightly before the detected end of silence.
+                adjusted = max(0.0, float(match.group(1)) - 0.5)
+                silence_ends.append(f"{adjusted:.3f}")
 
         return silence_ends
